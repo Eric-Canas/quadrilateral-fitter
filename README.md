@@ -46,8 +46,9 @@ noisy_corners = np.concatenate(sides, axis=0)
 noisy_corners[:, 0] = np.clip(noisy_corners[:, 0], a_min=0., a_max=image.shape[1])
 noisy_corners[:, 1] = np.clip(noisy_corners[:, 1], a_min=0., a_max=image.shape[0])
 ```
-
-<img alt="Input Sample" title="Input Sample" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/input_noisy_detection.png" width="50%" align="center">
+<div align="center">
+<img alt="Input Sample" title="Input Sample" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/input_noisy_detection.png" height="300px" align="center">
+<div/>
 
 
 And now, let's run **QuadrilateralFitter** to find the quadrilateral that best approximates our noisy detection (without leaving points outside).
@@ -69,8 +70,8 @@ fitter.plot()
 ```
 
 <div align="center">
-  <img alt="Fitting Process" title="Fitting Process" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/fitting_process.png" height="720px">
-  <img alt="Fitted Quadrilateral" title="Fitted Quadrilateral" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/fitted_quadrilateral.png" height="720px">
+  <img alt="Fitting Process" title="Fitting Process" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/fitting_process.png" height="300px">
+  <img alt="Fitted Quadrilateral" title="Fitted Quadrilateral" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/fitted_quadrilateral.png" height="300px">
 </div>
 
 
