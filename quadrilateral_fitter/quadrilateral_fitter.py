@@ -7,16 +7,16 @@ from itertools import combinations
 from quadrilateral_fitter import _Line  # Assuming you'll also rename the module
 
 class QuadrilateralFitter:
-    def __init__(self, input_polygon: 'np.ndarray'|tuple|list):
+    def __init__(self, polygon: 'np.ndarray' | tuple | list):
         """
         Constructor for initializing the QuadrilateralFitter object.
 
-        :param input_polygon: np.ndarray. A NumPy array of shape (N, 2) representing the input polygon,
+        :param polygon: np.ndarray. A NumPy array of shape (N, 2) representing the input polygon,
                               where N is the number of vertices.
         """
-        assert input_polygon.shape[1] == 2, "Input polygon should have a shape of (N, 2)"
-        self._polygon = input_polygon
-        self.convex_hull_polygon = Polygon(input_polygon).convex_hull
+        assert polygon.shape[1] == 2, "Input polygon should have a shape of (N, 2)"
+        self._polygon = polygon
+        self.convex_hull_polygon = Polygon(polygon).convex_hull
 
         self._initial_quadrilateral = None
         self.fitted_quadrilateral = None
