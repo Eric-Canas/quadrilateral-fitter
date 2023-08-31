@@ -30,6 +30,7 @@ def yugioh_test():
     # Fit an input polygon of N sides
     fitter = QuadrilateralFitter(polygon=noisy_corners)
     fitted_quadrilateral = fitter.fit()
+    tight_quadrilateral = fitter.tight_quadrilateral
     fitter.plot()
 
     # Draw the fitted quadrilateral on the image
@@ -39,11 +40,14 @@ def yugioh_test():
     ax.plot(noisy_corners[:, 0], noisy_corners[:, 1], linestyle='-', alpha=0.7, label='Input Detection')
     # Draw the fitted quadrilateral
     fitted_quadrilateral = np.array(fitted_quadrilateral+(fitted_quadrilateral[0],), dtype=np.float32)
-
+    tight_quadrilateral = np.array(tight_quadrilateral.exterior.coords)
     ax.plot(fitted_quadrilateral[:, 0], fitted_quadrilateral[:, 1], linestyle='--', marker='o', alpha=0.7,
             label='Fitted Quadrilateral')
+    # Draw the tight quadrilateral
+    ax.plot(tight_quadrilateral[:, 0], tight_quadrilateral[:, 1], linestyle='--', marker='o', alpha=0.7,
+            label='Tight Quadrilateral')
     ax.legend(fontsize='small')
-    #plt.savefig('./resources/yugioh_fitted_quadrilateral4.png', dpi=600, bbox_inches='tight')
+    plt.savefig('./resources/yugioh_fitted_quadrilateral4.png', dpi=600, bbox_inches='tight')
     plt.show()
 
 

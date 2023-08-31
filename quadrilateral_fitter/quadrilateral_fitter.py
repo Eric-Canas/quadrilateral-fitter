@@ -47,7 +47,7 @@ class QuadrilateralFitter:
         return self.fitted_quadrilateral
 
 
-    def __find_initial_quadrilateral(self, simplify_polygons_larger_than: int | None = 8) -> Polygon:
+    def __find_initial_quadrilateral(self, simplify_polygons_larger_than: int | None = 10) -> Polygon:
         """
         Internal method to find the initial approximating quadrilateral based on the vertices of the Convex Hull.
         To find the initial quadrilateral, we iterate through all 4-vertex combinations of the Convex Hull vertices
@@ -269,7 +269,6 @@ class QuadrilateralFitter:
         plt.title('Quadrilateral Fitting')
         plt.legend()
         plt.grid(True)
-        plt.savefig('./resources/yugioh_fitted_quadrilateral5.png', dpi=600, bbox_inches='tight')
         plt.show()
 
 
