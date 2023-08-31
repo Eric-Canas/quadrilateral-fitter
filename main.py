@@ -1,4 +1,4 @@
-from trapezoid_fitter import TrapezoidFitter
+from quadrilateral_fitter import QuadrilateralFitter
 import numpy as np
 
 if __name__ == '__main__':
@@ -22,10 +22,8 @@ if __name__ == '__main__':
 
     # Running the tests
     test_data = [deformed_trapezoid, square, deformed_circle]
-    results = []
 
     for data in test_data:
-        fitter = TrapezoidFitter(data)
+        fitter = QuadrilateralFitter(data)
         fitter.fit()
-        fitter._plot()
-        results.append(fitter.best_trapezoid)
+        fitter.plot()

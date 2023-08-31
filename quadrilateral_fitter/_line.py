@@ -1,5 +1,5 @@
 from __future__ import annotations
-import numpy as np
+from math import sqrt
 
 
 class _Line:
@@ -18,6 +18,7 @@ class _Line:
         :param y2: float | int. y-coordinate of the second point.
         """
         self.A, self.B, self.C = self.calculate_line_coefficients(x1=x1, y1=y1, x2=x2, y2=y2)
+        self._norm = sqrt(self.A*self.A + self.B * self.B)
 
     def calculate_line_coefficients(self, x1: float | int, y1: float | int, x2: float | int, y2: float | int) -> tuple[
         float, float, float]:
@@ -41,7 +42,7 @@ class _Line:
         :param distance: float | int. Distance by which to move the line.
         """
         # Delta C is derived by translating the line equation Ax + By + C = 0
-        delta_C = -distance * np.sqrt(self.A ** 2 + self.B ** 2)
+        delta_C = -distance * self._norm
         self.C += delta_C
 
     def move_line_to_intersect_point(self, x: float | int, y: float | int) -> tuple[float, float]:
@@ -64,7 +65,7 @@ class _Line:
         :param y: float | int. The y-coordinate of the point.
         :return: float. Distance of the point from the line.
         """
-        return abs(self.point_line_position(x=x, y=y)) / np.sqrt(self.A ** 2 + self.B ** 2)
+        return abs(self.point_line_position(x=x, y=y)) / self._norm
 
     def point_line_position(self, x: float | int, y: float | int) -> float:
         """
