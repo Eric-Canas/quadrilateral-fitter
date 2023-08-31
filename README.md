@@ -71,7 +71,8 @@ fitter.plot()
 
 <div align="center">
   <img alt="Fitting Process" title="Fitting Process" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/fitting_process.png" height="300px">
-  <img alt="Fitted Quadrilateral" title="Fitted Quadrilateral" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/fitted_quadrilateral.png" height="300px">
+         &nbsp; &nbsp;
+  <img alt="Fitted Quadrilateral" title="Fitted Quadrilateral" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/fitted_quadrilateral.png" height="300px">&nbsp;
 </div>
 
 Finally, for use cases like this, we could use fitted quadrilaterals to apply a perspective correction to the image, so we can get a visual insight of the results.
@@ -99,7 +100,10 @@ for quadrilateral in (fitted_quadrilateral, tight_quadrilateral):
 ```
 
 <div align="center">
-  <img alt="Input Segmentation" title="Input Segmentation" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/input_segmentation.png" height="300px">
-  <img alt="Corrected Perspective Fitted" title="Corrected Perspective Fitted" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/corrected_perspective_fitted.png" height="300px">
-  <img alt="Corrected Perspective Tight" title="Corrected Perspective Tight" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/corrected_perspective_tight.png" height="300px">
+  <img alt="Input Segmentation" title="Input Segmentation" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/input_segmentation.png" height="250px">
+         &nbsp;
+  <img alt="Corrected Perspective Fitted" title="Corrected Perspective Fitted" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/corrected_perspective_fitted.png" height="250px">
+         &nbsp;
+  <img alt="Corrected Perspective Tight" title="Corrected Perspective Tight" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/corrected_perspective_tight.png" height="250px">
+         &nbsp;
 </div>
