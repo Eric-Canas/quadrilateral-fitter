@@ -48,7 +48,7 @@ noisy_corners[:, 1] = np.clip(noisy_corners[:, 1], a_min=0., a_max=image.shape[0
 ```
 <div align="center">
 <img alt="Input Sample" title="Input Sample" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/input_noisy_detection.png" height="300px" align="center">
-<div/>
+</div>
 
 
 And now, let's run **QuadrilateralFitter** to find the quadrilateral that best approximates our noisy detection (without leaving points outside).
@@ -74,5 +74,32 @@ fitter.plot()
   <img alt="Fitted Quadrilateral" title="Fitted Quadrilateral" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/fitted_quadrilateral.png" height="300px">
 </div>
 
+Finally, for use cases like this, we could use fitted quadrilaterals to apply a perspective correction to the image, so we can get a visual insight of the results.
 
+```python
+# Generate the destiny points for the perspective correction by adjusting it to a perfect rectangle
+h, w = image.shape[:2]
 
+for quadrilateral in (fitted_quadrilateral, tight_quadrilateral):
+    # Cast it to a numpy for agile manipulation
+    quadrilateral = np.array(quadrilateral, dtype=np.float32)
+
+    # Get the bounding box of the fitted quadrilateral
+    min_x, min_y = np.min(quadrilateral, axis=0)
+    max_x, max_y = np.max(quadrilateral, axis=0)
+
+    # Define the destiny points for the perspective correction
+    destiny_points = np.array(((min_x, min_y), (max_x, min_y),
+                               (max_x, max_y), (min_x, max_y)), dtype=np.float32)
+
+    # Calculate the homography matrix from the quadrilateral to the rectangle
+    homography_matrix, _ = cv2.findHomography(srcPoints=quadrilateral, dstPoints=rect_points)
+    # Warp the image using the homography matrix
+    warped_image = cv2.warpPerspective(src=image, M=homography_matrix, dsize=(w, h))
+```
+
+<div align="center">
+  <img alt="Input Segmentation" title="Input Segmentation" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/input_segmentation.png" height="300px">
+  <img alt="Corrected Perspective Fitted" title="Corrected Perspective Fitted" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/corrected_perspective_fitted.png" height="300px">
+  <img alt="Corrected Perspective Tight" title="Corrected Perspective Tight" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/corrected_perspective_tight.png" height="300px">
+</div>

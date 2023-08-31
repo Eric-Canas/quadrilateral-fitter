@@ -22,10 +22,13 @@ class QuadrilateralFitter:
         self.fitted_quadrilateral = None
 
     @property
-    def tight_quadrilateral(self):
-        return self._initial_guess
+    def tight_quadrilateral(self) -> \
+            tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]]:
+        # Cast it from Shapely polygon to a tuple of coords
+        return tuple(self._initial_guess.exterior.coords)[:-1]
 
-    def fit(self) -> tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]]:
+    def fit(self, simplify_polygons_larger_than: int|None = 10) -> \
+            tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]]:
         """
         Fits an irregular quadrilateral around the input polygon. The quadrilateral is optimized to minimize
         the Intersection over Union (IoU) with the input polygon.
@@ -42,20 +45,20 @@ class QuadrilateralFitter:
 
         :raises AssertionError: If the input polygon does not have a shape of (N, 2).
         """
-        self._initial_guess = self.__find_initial_quadrilateral()
+        self._initial_guess = self.__find_initial_quadrilateral(max_sides_to_simplify=simplify_polygons_larger_than)
         self.fitted_quadrilateral = self.__expand_quadrilateral(self._initial_guess)
         return self.fitted_quadrilateral
 
 
-    def __find_initial_quadrilateral(self, simplify_polygons_larger_than: int | None = 10) -> Polygon:
+    def __find_initial_quadrilateral(self, max_sides_to_simplify: int | None = 10) -> Polygon:
         """
         Internal method to find the initial approximating quadrilateral based on the vertices of the Convex Hull.
         To find the initial quadrilateral, we iterate through all 4-vertex combinations of the Convex Hull vertices
         and find the one with the highest Intersection over Union (IoU) with the Convex Hull. It will ensure that
         it is the best possible quadrilateral approximation to the input polygon.
-        :param simplify_polygons_larger_than: int|None. If a number is specified, the method will make a
+        :param max_sides_to_simplify: int|None. If a number is specified, the method will make a
                         preliminar Douglas-Peucker simplification of the Convex Hull if it has more than
-                        simplify_polygons_larger_than vertices. This will speed up the process, but may
+                        max_sides_to_simplify vertices. This will speed up the process, but may
                         lead to a sub-optimal quadrilateral approximation.
 
         :return: Polygon. A Shapely Polygon object representing the initial quadrilateral approximation.
@@ -65,7 +68,7 @@ class QuadrilateralFitter:
 
         # Simplify the Convex Hull if it has more than simplify_polygons_larger_than vertices
         simplified_polygon = self.__simplify_polygon(polygon=self.convex_hull_polygon,
-                                                     max_sides=simplify_polygons_larger_than)
+                                                     max_sides=max_sides_to_simplify)
 
         # Iterate through all 4-vertex combinations to form potential quadrilaterals
         for vertices_combination in combinations(mapping(simplified_polygon)['coordinates'][0], 4):
@@ -251,7 +254,7 @@ class QuadrilateralFitter:
             # Calculate the IoU between the Convex Hull and the best-fitting quadrilateral
             iou = self.__iou(polygon1=self.convex_hull_polygon, polygon2=Polygon(self._initial_guess))
             x, y = self._initial_guess.exterior.xy
-            plt.plot(x, y, linestyle='--', alpha=0.5, label=f'Initial Guess (IoU={iou:.3f})')
+            plt.plot(x, y, linestyle='--', alpha=0.5, color='green', label=f'Initial Guess (IoU={iou:.3f})')
 
         # Plot the best quadrilateral if it exists
         if self.fitted_quadrilateral is not None:
@@ -265,9 +268,12 @@ class QuadrilateralFitter:
 
         plt.axis('equal')
         plt.xlabel('X')
+        # Reverse Y axis
         plt.ylabel('Y')
         plt.title('Quadrilateral Fitting')
         plt.legend()
+        ax = plt.gca()  # Get current axes
+        ax.invert_yaxis()
         plt.grid(True)
         plt.show()
 

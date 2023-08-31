@@ -8,7 +8,7 @@ def yugioh_test():
     true_corners = np.array([[50., 100.], [370., 0.], [421., 550.], [0., 614.], [50., 100.]], dtype=np.float32)
 
     # Generate the noisy corners
-    sides = [np.linspace([x1, y1], [x2, y2], 50) + np.random.normal(scale=5, size=(50, 2))
+    sides = [np.linspace([x1, y1], [x2, y2], 25) + np.random.normal(scale=5, size=(25, 2))
              for (x1, y1), (x2, y2) in zip(true_corners[:-1], true_corners[1:])]
     noisy_corners = np.concatenate(sides, axis=0)
 
@@ -16,39 +16,14 @@ def yugioh_test():
     noisy_corners[:, 0] = np.clip(noisy_corners[:, 0], a_min=0., a_max=image.shape[1])
     noisy_corners[:, 1] = np.clip(noisy_corners[:, 1], a_min=0., a_max=image.shape[0])
 
-    fig, ax = plt.subplots()
-    ax.imshow(image), ax.axis('off')
+    print(noisy_corners.tolist())
 
-    # Draw the true corners
-    ax.plot(true_corners[:, 0], true_corners[:, 1], linestyle='--', marker='o', alpha=0.9, label='True Polygon')
-    # Draw the noisy corners
-    ax.plot(noisy_corners[:, 0], noisy_corners[:, 1], linestyle='-', alpha=0.6, label='Noisy Detection')
-
-    ax.legend(fontsize='small')
-    plt.show()
-    #plt.savefig('./resources/yugioh_noisy_detection2.png', dpi=600, bbox_inches='tight')
-    # Fit an input polygon of N sides
     fitter = QuadrilateralFitter(polygon=noisy_corners)
-    fitted_quadrilateral = fitter.fit()
+    fitted_quadrilateral = fitter.fit(simplify_polygons_larger_than=30)
     tight_quadrilateral = fitter.tight_quadrilateral
-    fitter.plot()
 
-    # Draw the fitted quadrilateral on the image
-    fig, ax = plt.subplots()
-    ax.imshow(image), ax.axis('off')
-    # Draw the input
-    ax.plot(noisy_corners[:, 0], noisy_corners[:, 1], linestyle='-', alpha=0.7, label='Input Detection')
-    # Draw the fitted quadrilateral
-    fitted_quadrilateral = np.array(fitted_quadrilateral+(fitted_quadrilateral[0],), dtype=np.float32)
-    tight_quadrilateral = np.array(tight_quadrilateral.exterior.coords)
-    ax.plot(fitted_quadrilateral[:, 0], fitted_quadrilateral[:, 1], linestyle='--', marker='o', alpha=0.7,
-            label='Fitted Quadrilateral')
-    # Draw the tight quadrilateral
-    ax.plot(tight_quadrilateral[:, 0], tight_quadrilateral[:, 1], linestyle='--', marker='o', alpha=0.7,
-            label='Tight Quadrilateral')
-    ax.legend(fontsize='small')
-    plt.savefig('./resources/yugioh_fitted_quadrilateral4.png', dpi=600, bbox_inches='tight')
-    plt.show()
+    print(fitted_quadrilateral)
+    print(tight_quadrilateral)
 
 
 
