@@ -18,8 +18,12 @@ class QuadrilateralFitter:
         self._polygon = polygon
         self.convex_hull_polygon = Polygon(polygon).convex_hull
 
-        self._initial_quadrilateral = None
+        self._initial_guess = None
         self.fitted_quadrilateral = None
+
+    @property
+    def tight_quadrilateral(self):
+        return self._initial_guess
 
     def fit(self) -> tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]]:
         """
@@ -38,8 +42,8 @@ class QuadrilateralFitter:
 
         :raises AssertionError: If the input polygon does not have a shape of (N, 2).
         """
-        self._initial_quadrilateral = self.__find_initial_quadrilateral()
-        self.fitted_quadrilateral = self.__expand_quadrilateral(self._initial_quadrilateral)
+        self._initial_guess = self.__find_initial_quadrilateral()
+        self.fitted_quadrilateral = self.__expand_quadrilateral(self._initial_guess)
         return self.fitted_quadrilateral
 
 
@@ -234,9 +238,6 @@ class QuadrilateralFitter:
         except ImportError:
             raise ImportError("This function requires matplotlib to be installed. Please install it first.")
 
-        # Calculate the IoU between the Convex Hull and the best-fitting quadrilateral
-        iou = self.__iou(polygon1=self.convex_hull_polygon, polygon2=Polygon(self.fitted_quadrilateral))
-
         # Plot the original polygon as a set of alpha 0.4 points
         x, y = zip(*list(self._polygon))
         plt.scatter(x, y, alpha=0.2, label='Input Polygon')
@@ -246,12 +247,16 @@ class QuadrilateralFitter:
         plt.fill(x, y, alpha=0.4, label='Convex Hull')
 
         # Plot the initial quadrilateral if it exists as a semi-transparent dashed line
-        if self._initial_quadrilateral is not None:
-            x, y = self._initial_quadrilateral.exterior.xy
-            plt.plot(x, y, linestyle='--', alpha=0.5, label='Initial Guess')
+        if self._initial_guess is not None:
+            # Calculate the IoU between the Convex Hull and the best-fitting quadrilateral
+            iou = self.__iou(polygon1=self.convex_hull_polygon, polygon2=Polygon(self._initial_guess))
+            x, y = self._initial_guess.exterior.xy
+            plt.plot(x, y, linestyle='--', alpha=0.5, label=f'Initial Guess (IoU={iou:.3f})')
 
         # Plot the best quadrilateral if it exists
         if self.fitted_quadrilateral is not None:
+            # Calculate the IoU between the Convex Hull and the best-fitting quadrilateral
+            iou = self.__iou(polygon1=self.convex_hull_polygon, polygon2=Polygon(self.fitted_quadrilateral))
             x, y = zip(*self.fitted_quadrilateral)
             plt.plot(x + (x[0],), y + (y[0],), label=f'Fitted Quadrilateral (IoU={iou:.3f})')
 
@@ -264,6 +269,7 @@ class QuadrilateralFitter:
         plt.title('Quadrilateral Fitting')
         plt.legend()
         plt.grid(True)
+        plt.savefig('./resources/yugioh_fitted_quadrilateral5.png', dpi=600, bbox_inches='tight')
         plt.show()
 
 
