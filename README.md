@@ -100,7 +100,7 @@ for quadrilateral in (fitted_quadrilateral, tight_quadrilateral):
 ```
 
 <div align="center">
-  <img alt="Input Segmentation" title="Input Segmentation" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/input_segmentation.png" height="225px">
-  <img alt="Corrected Perspective Fitted" title="Corrected Perspective Fitted" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/corrected_perspective_fitted.png" height="225px">
-  <img alt="Corrected Perspective Tight" title="Corrected Perspective Tight" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/corrected_perspective_tight.png" height="225px">
+  <img alt="Input Segmentation" title="Input Segmentation" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/input_segmentation.png" height="230px">
+  <img alt="Corrected Perspective Fitted" title="Corrected Perspective Fitted" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/corrected_perspective_fitted.png" height="230px">
+  <img alt="Corrected Perspective Tight" title="Corrected Perspective Tight" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/corrected_perspective_tight.png" height="230px">
 </div>
