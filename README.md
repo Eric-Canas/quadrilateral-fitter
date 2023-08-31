@@ -1,2 +1,2 @@
-# TrapezoidFitter
-An algorithm for fitting trapezoids from irregular polygons
+# QuadrilateralFitter
+QuadrilateralFitter is an efficient and easy-to-use library for fitting irregular quadrilaterals from polygons or point clouds.
