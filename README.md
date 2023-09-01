@@ -24,6 +24,8 @@ from quadrilateral_fitter import QuadrilateralFitter
 fitted_quadrilateral = QuadrilateralFitter(polygon=your_noisy_polygon).fit()
 ```
 
+
+
 #### Real Case Example
 
 Let's simulate a real case scenario where we detect a noisy polygon from a form that we know should be a perfect rectangle (only deformed by perspective).
@@ -50,6 +52,12 @@ noisy_corners[:, 1] = np.clip(noisy_corners[:, 1], a_min=0., a_max=image.shape[0
 <img alt="Input Sample" title="Input Sample" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/input_noisy_detection.png" height="300px" align="center">
 </div>
 
+<div align="center">
+  <img alt="Fitting Example 1" title="Fitting Example 1" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/basic_example_1" height="300px">
+         &nbsp; &nbsp;
+  
+  <img alt="Fitting Example 2" title="Fitting Example 2" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/basic_example_2" height="300px">&nbsp;
+</div>
 
 And now, let's run **QuadrilateralFitter** to find the quadrilateral that best approximates our noisy detection (without leaving points outside).
 
