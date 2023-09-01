@@ -30,13 +30,27 @@ fitted_quadrilateral = QuadrilateralFitter(polygon=your_noisy_polygon).fit()
   <img alt="Fitting Example 2" title="Fitting Example 2" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/basic_example_2.png" height="250px">&nbsp;
 </div>
 
-If your application can accept fitted quadrilateral to don't strictly include all points within input polygon, you can get the tighter quadrilateral shown as _Initial Guess_ with:
+If your application can accept fitted quadrilateral to don't strictly include all points within input polygon, you can get the tighter quadrilateral shown as `Initial Guess` with:
 
 ```python
 fitted_quadrilateral = QuadrilateralFitter(polygon=your_noisy_polygon).tight_quadrilateral
 ```
 
-### Real Case Example
+## API Reference
+
+### QuadrilateralFitter(polygon)
+
+Initialize the **QuadrilateralFitter** instance..
+
+- `polygon`: **np.ndarray | tuple | list | shapely.Polygon**. List of the polygon coordinates. It must be a list of coordinates, in the format `XY`, shape (N, 2).
+
+### QuadrilateralFitter.fit(simplify_polygons_larger_than = 10):
+- `simplify_polygons_larger_than`: **int | None**. List of the polygon coordinates. It must be a list of coordinates, in the format `XY`, shape (N, 2). If a number is specified, the method will make a preliminar _Douglas-Peucker_ simplification of the internally used _Convex Hull_ if it has more than `simplify_polygons_larger_than vertices`. This will speed up the process, but may lead to a sub-optimal quadrilateral approximation. Default: 10.
+
+**Returns**: **tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]]**: A `tuple` containing the four `XY` coordinates of the fitted cuadrilateral. This quadrilateral will minimize the **IoU** (Intersection Over Union) with the input _polygon_, while containing all its points inside. If your use case can allow loosing points from the input polygon, you can read the `QuadrilateralFitter.tight_polygon` property to obtain a tighter quadrilateral.
+
+
+## Real Case Example
 
 Let's simulate a real case scenario where we detect a noisy polygon from a form that we know should be a perfect rectangle (only deformed by perspective).
 
@@ -115,17 +129,3 @@ for quadrilateral in (fitted_quadrilateral, tight_quadrilateral):
   <img alt="Corrected Perspective Fitted" title="Corrected Perspective Fitted" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/corrected_perspective_fitted.png" height="230px">
   <img alt="Corrected Perspective Tight" title="Corrected Perspective Tight" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/corrected_perspective_tight.png" height="230px">
 </div>
-
-
-## API Reference
-
-### QuadrilateralFitter(polygon)
-
-Initialize the QuadrilateralFitter instance..
-
-- `polygon`: **np.ndarray | tuple | list | shapely.Polygon**. List of the polygon coordinates. It must be a list of coordinates, in the format `XY`, shape (N, 2).
-
-### QuadrilateralFitter.fit(simplify_polygons_larger_than = 10):
-- `simplify_polygons_larger_than`: **int | None**. List of the polygon coordinates. It must be a list of coordinates, in the format `XY`, shape (N, 2). If a number is specified, the method will make a preliminar _Douglas-Peucker_ simplification of the internally used _Convex Hull_ if it has more than `simplify_polygons_larger_than vertices`. This will speed up the process, but may lead to a sub-optimal quadrilateral approximation. Default: 10.
-
-- Returns: **tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]]**: A `tuple` containing the four `XY` coordinates of the fitted cuadrilateral. This quadrilateral will minimize the **IoU** (Intersection Over Union) with the input _polygon_, while containing all its points inside. If your use case can allow loosing points from the input polygon, you can read the `QuadrilateralFitter.tight_polygon` property to obtain a tighter quadrilateral.
