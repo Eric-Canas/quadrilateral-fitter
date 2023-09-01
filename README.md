@@ -24,9 +24,19 @@ from quadrilateral_fitter import QuadrilateralFitter
 fitted_quadrilateral = QuadrilateralFitter(polygon=your_noisy_polygon).fit()
 ```
 
+<div align="center">
+  <img alt="Fitting Example 1" title="Fitting Example 1" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/basic_example_1.png" height="250px">
+         &nbsp;
+  <img alt="Fitting Example 2" title="Fitting Example 2" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/basic_example_2.png" height="250px">&nbsp;
+</div>
 
+If your application can accept fitted quadrilateral to don't strictly include all points within input polygon, you can get the tighter quadrilateral shown as _Initial Guess_ with:
 
-#### Real Case Example
+```python
+fitted_quadrilateral = QuadrilateralFitter(polygon=your_noisy_polygon).tight_quadrilateral
+```
+
+### Real Case Example
 
 Let's simulate a real case scenario where we detect a noisy polygon from a form that we know should be a perfect rectangle (only deformed by perspective).
 
@@ -50,13 +60,6 @@ noisy_corners[:, 1] = np.clip(noisy_corners[:, 1], a_min=0., a_max=image.shape[0
 ```
 <div align="center">
 <img alt="Input Sample" title="Input Sample" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/input_noisy_detection.png" height="300px" align="center">
-</div>
-
-<div align="center">
-  <img alt="Fitting Example 1" title="Fitting Example 1" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/basic_example_1" height="300px">
-         &nbsp; &nbsp;
-  
-  <img alt="Fitting Example 2" title="Fitting Example 2" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/basic_example_2" height="300px">&nbsp;
 </div>
 
 And now, let's run **QuadrilateralFitter** to find the quadrilateral that best approximates our noisy detection (without leaving points outside).
@@ -125,4 +128,4 @@ Initialize the QuadrilateralFitter instance..
 ### QuadrilateralFitter.fit(simplify_polygons_larger_than = 10):
 - `simplify_polygons_larger_than`: **int | None**. List of the polygon coordinates. It must be a list of coordinates, in the format `XY`, shape (N, 2). If a number is specified, the method will make a preliminar _Douglas-Peucker_ simplification of the internally used _Convex Hull_ if it has more than `simplify_polygons_larger_than vertices`. This will speed up the process, but may lead to a sub-optimal quadrilateral approximation. Default: 10.
 
-- Returns: **tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]]**: A `tuple` containing the four `XY` coordinates of the fitted cuadrilateral. This quadrilateral will minimize the **IoU** (Intersection Over Union) with the input _polygon_, while containing all its points inside. If your use case can allow the probability of loosing points from the input polygon, you can read the `QuadrilateralFitter.tight_polygon` property to obtain a tighter quadrilateral. Make sure to run this method before to generate it.
+- Returns: **tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]]**: A `tuple` containing the four `XY` coordinates of the fitted cuadrilateral. This quadrilateral will minimize the **IoU** (Intersection Over Union) with the input _polygon_, while containing all its points inside. If your use case can allow loosing points from the input polygon, you can read the `QuadrilateralFitter.tight_polygon` property to obtain a tighter quadrilateral.
