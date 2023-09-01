@@ -27,10 +27,10 @@ if __name__ == '__main__':
     # 1. Deformed trapezoid
     num_points = 20
     left_side = np.linspace([0.2, 0.2], [0.2, 0.8], num_points) + np.random.normal(scale=0.01, size=(num_points, 2))
-    right_side = np.linspace([0.8, 0.3], [0.8, 0.7], num_points) + np.random.normal(scale=0.01, size=(num_points, 2))
     top_side = np.linspace([0.2, 0.8], [0.8, 0.7], num_points) + np.random.normal(scale=0.01, size=(num_points, 2))
-    bottom_side = np.linspace([0.2, 0.2], [0.8, 0.3], num_points) + np.random.normal(scale=0.01, size=(num_points, 2))
-    deformed_trapezoid = np.vstack([left_side, right_side, top_side, bottom_side])
+    right_side = np.linspace([0.8, 0.7], [0.8, 0.3], num_points) + np.random.normal(scale=0.01, size=(num_points, 2))
+    bottom_side = np.linspace([0.8, 0.3], [0.2, 0.2], num_points) + np.random.normal(scale=0.01, size=(num_points, 2))
+    deformed_trapezoid = np.vstack([top_side, right_side, bottom_side, left_side])
 
     # 2. Perfect square
     square = np.array([[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]])
@@ -41,10 +41,18 @@ if __name__ == '__main__':
     circle_y = 0.5 + 0.4 * np.sin(theta) + np.random.normal(scale=0.03, size=theta.shape)
     deformed_circle = np.vstack((circle_x, circle_y)).T
 
+    # Deformed trapezoid that looks almost like a triangle
+    num_points = 20
+    left_side = np.linspace([0.2, 0.2], [0.2, 0.8], num_points) + np.random.normal(scale=0.01, size=(num_points, 2))
+    top_side = np.linspace([0.2, 0.8], [0.5, 0.8], num_points) + np.random.normal(scale=0.01, size=(num_points, 2))
+    right_side = np.linspace([0.5, 0.8], [0.75, 0.2], num_points) + np.random.normal(scale=0.01, size=(num_points, 2))
+    bottom_side = np.linspace([0.75, 0.2], [0.2, 0.2], num_points) + np.random.normal(scale=0.01, size=(num_points, 2))
+    almost_triangle_trapezoid = np.vstack([top_side, right_side, bottom_side, left_side])
+
     # Running the tests
-    test_data = [deformed_trapezoid, square, deformed_circle]
+    test_data = [deformed_trapezoid, square, deformed_circle, almost_triangle_trapezoid]
 
     for data in test_data:
-        fitter = QuadrilateralFitter(data)
+        fitter = QuadrilateralFitter(polygon=data)
         fitter.fit()
         fitter.plot()

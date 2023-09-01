@@ -262,11 +262,11 @@ class QuadrilateralFitter:
 
         # Plot the original polygon as a set of alpha 0.4 points
         x, y = self._polygon.exterior.xy
-        plt.scatter(x, y, alpha=0.2, label='Input Polygon')
+        plt.plot(x, y, alpha=0.3,  linestyle='-', marker='o', label='Input Polygon')
 
         # Plot the convex hull as a filled polygon
         x, y = self.convex_hull_polygon.exterior.xy
-        plt.fill(x, y, alpha=0.4, label='Convex Hull')
+        plt.fill(x, y, alpha=0.4, label='Convex Hull', color='orange')
 
         # Plot the initial quadrilateral if it exists as a semi-transparent dashed line
         if self._initial_guess is not None:
