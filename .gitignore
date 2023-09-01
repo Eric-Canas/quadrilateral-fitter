@@ -2,3 +2,7 @@
 .idea/
 
 *.pyc
+
+dist/
+
+quadrilateral_fitter.egg-info/
