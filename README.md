@@ -30,7 +30,7 @@ fitted_quadrilateral = QuadrilateralFitter(polygon=your_noisy_polygon).fit()
   <img alt="Fitting Example 2" title="Fitting Example 2" src="https://raw.githubusercontent.com/Eric-Canas/quadrilateral-fitter/main/resources/basic_example_2.png" height="250px">&nbsp;
 </div>
 
-If your application can accept fitted quadrilateral to don't strictly include all points within input polygon, you can get the tighter quadrilateral shown as _Initial Guess_ with:
+If your application can accept fitted quadrilateral to don't strictly include all points within input polygon, you can get the tighter quadrilateral shown as `Initial Guess` with:
 
 ```python
 fitted_quadrilateral = QuadrilateralFitter(polygon=your_noisy_polygon).tight_quadrilateral
@@ -121,7 +121,7 @@ for quadrilateral in (fitted_quadrilateral, tight_quadrilateral):
 
 ### QuadrilateralFitter(polygon)
 
-Initialize the QuadrilateralFitter instance..
+Initialize the **QuadrilateralFitter** instance..
 
 - `polygon`: **np.ndarray | tuple | list | shapely.Polygon**. List of the polygon coordinates. It must be a list of coordinates, in the format `XY`, shape (N, 2).
 
