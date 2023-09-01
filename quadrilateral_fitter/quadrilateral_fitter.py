@@ -38,6 +38,8 @@ class QuadrilateralFitter:
     @property
     def tight_quadrilateral(self) -> \
             tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]]:
+        if self._initial_guess is None:
+            self._initial_guess = self.__find_initial_quadrilateral()
         # Cast it from Shapely polygon to a tuple of coords
         return tuple(self._initial_guess.exterior.coords)[:-1]
 
@@ -64,8 +66,9 @@ class QuadrilateralFitter:
 
         :raises AssertionError: If the input polygon does not have a shape of (N, 2).
         """
-        self._initial_guess = self.__find_initial_quadrilateral(max_sides_to_simplify=simplify_polygons_larger_than)
-        self.fitted_quadrilateral = self.__expand_quadrilateral(self._initial_guess)
+        if self._initial_guess is None:
+            self._initial_guess = self.__find_initial_quadrilateral(max_sides_to_simplify=simplify_polygons_larger_than)
+        self.fitted_quadrilateral = self.__expand_quadrilateral(quadrilateral=self._initial_guess)
         return self.fitted_quadrilateral
 
 
