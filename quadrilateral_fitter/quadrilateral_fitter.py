@@ -43,7 +43,8 @@ class QuadrilateralFitter:
         # Cast it from Shapely polygon to a tuple of coords
         return tuple(self._initial_guess.exterior.coords)[:-1]
 
-    def fit(self, simplify_polygons_larger_than: int|None = 10) -> \
+    def fit(self, simplify_polygons_larger_than: int|None = 10, start_simplification_epsilon: float = 0.1,
+            max_simplification_epsilon: float = 0.5, simplification_epsilon_increment: float = 0.02) -> \
             tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]]:
         """
         Fits an irregular quadrilateral around the input polygon. The quadrilateral is optimized to minimize
@@ -60,6 +61,12 @@ class QuadrilateralFitter:
                         preliminar Douglas-Peucker simplification of the Convex Hull if it has more than
                         simplify_polygons_larger_than vertices. This will speed up the process, but may
                         lead to a sub-optimal quadrilateral approximation.
+        :param start_simplification_epsilon: float. The initial simplification epsilon to use if
+                        simplify_polygons_larger_than is not None (for Douglas-Peucker simplification).
+        :param max_simplification_epsilon: float. The maximum simplification epsilon to use if
+                        simplify_polygons_larger_than is not None (for Douglas-Peucker simplification).
+        :param simplification_epsilon_increment: float. The increment in the simplification epsilon to use if
+                        simplify_polygons_larger_than is not None (for Douglas-Peucker simplification).
 
         :return: A tuple containing four tuples, each of which has two float elements representing the (x, y)
                 coordinates of the quadrilateral's vertices. The vertices are order clockwise.
@@ -67,12 +74,18 @@ class QuadrilateralFitter:
         :raises AssertionError: If the input polygon does not have a shape of (N, 2).
         """
         if self._initial_guess is None:
-            self._initial_guess = self.__find_initial_quadrilateral(max_sides_to_simplify=simplify_polygons_larger_than)
+            self._initial_guess = self.__find_initial_quadrilateral(max_sides_to_simplify=simplify_polygons_larger_than,
+                                                                start_simplification_epsilon=start_simplification_epsilon,
+                                                                max_simplification_epsilon=max_simplification_epsilon,
+                                                                simplification_epsilon_increment=simplification_epsilon_increment)
         self.fitted_quadrilateral = self.__expand_quadrilateral(quadrilateral=self._initial_guess)
         return self.fitted_quadrilateral
 
 
-    def __find_initial_quadrilateral(self, max_sides_to_simplify: int | None = 10) -> Polygon:
+    def __find_initial_quadrilateral(self, max_sides_to_simplify: int | None = 10,
+                                     start_simplification_epsilon: float = 0.1,
+                                     max_simplification_epsilon: float = 0.5,
+                                     simplification_epsilon_increment: float = 0.02) -> Polygon:
         """
         Internal method to find the initial approximating quadrilateral based on the vertices of the Convex Hull.
         To find the initial quadrilateral, we iterate through all 4-vertex combinations of the Convex Hull vertices
@@ -82,6 +95,12 @@ class QuadrilateralFitter:
                         preliminar Douglas-Peucker simplification of the Convex Hull if it has more than
                         max_sides_to_simplify vertices. This will speed up the process, but may
                         lead to a sub-optimal quadrilateral approximation.
+        :param start_simplification_epsilon: float. The initial simplification epsilon to use if
+                        max_sides_to_simplify is not None (for Douglas-Peucker simplification).
+        :param max_simplification_epsilon: float. The maximum simplification epsilon to use if
+                        max_sides_to_simplify is not None (for Douglas-Peucker simplification).
+        :param simplification_epsilon_increment: float. The increment in the simplification epsilon to use if
+                        max_sides_to_simplify is not None (for Douglas-Peucker simplification).
 
         :return: Polygon. A Shapely Polygon object representing the initial quadrilateral approximation.
         """
@@ -90,7 +109,10 @@ class QuadrilateralFitter:
 
         # Simplify the Convex Hull if it has more than simplify_polygons_larger_than vertices
         simplified_polygon = self.__simplify_polygon(polygon=self.convex_hull_polygon,
-                                                     max_sides=max_sides_to_simplify)
+                                                     max_sides=max_sides_to_simplify,
+                                                     initial_epsilon=start_simplification_epsilon,
+                                                     max_epsilon=max_simplification_epsilon,
+                                                     epsilon_increment=simplification_epsilon_increment)
 
         # Iterate through all 4-vertex combinations to form potential quadrilaterals
         for vertices_combination in combinations(mapping(simplified_polygon)['coordinates'][0], 4):
@@ -196,8 +218,8 @@ class QuadrilateralFitter:
     # -------------------------------- HELPER METHODS -------------------------------- #
 
     def __simplify_polygon(self, polygon: Polygon, max_sides: int|None,
-                           max_epsilon: float = 0.3, initial_epsilon: float = 0.01,
-                           epsilon_increment: float = 0.005) -> Polygon:
+                           initial_epsilon: float = 0.1, max_epsilon: float = 0.5,
+                           epsilon_increment: float = 0.02) -> Polygon:
         """
         Internal method to simplify a polygon using the Douglas-Peucker algorithm.
         :param polygon: Polygon. The polygon to simplify.
@@ -212,18 +234,17 @@ class QuadrilateralFitter:
         if max_sides is None:
             return polygon  # No simplification needed
 
-        assert 0. < max_epsilon <= 1., "max_epsilon should be a float between 0 and 1"
-        assert 0. < initial_epsilon <= 1., "initial_epsilon should be a float between 0 and 1"
-        assert 0. < epsilon_increment <= 1., "epsilon_increment should be a float between 0 and 1"
+        assert max_epsilon > 0., f"max_epsilon should be a float greater than 0. Got {max_epsilon}."
+        assert initial_epsilon > 0., f"initial_epsilon should be a float greater than 0. Got {initial_epsilon}."
+        assert epsilon_increment > 0., f"epsilon_increment should be a float greater than 0. Got {epsilon_increment}."
 
-        epsilon, increment = 0.01, 0.005  # Initial tolerance value and incremental step for tolerance
+        epsilon = initial_epsilon  # Initial tolerance value and incremental step for tolerance
         simplified_polygon = polygon
 
-        while len(simplified_polygon.exterior.coords) - 1 > max_sides:  # -1 because the polygon is closed
+        # -1 because the polygon is closed (last point is the same as the first)
+        while (len(simplified_polygon.exterior.coords) - 1 > max_sides) and (epsilon <= max_epsilon):
             simplified_polygon = polygon.simplify(epsilon, preserve_topology=True)
-            epsilon += increment
-            if epsilon > 0.3:
-                break
+            epsilon += epsilon_increment
 
         return simplified_polygon
 
