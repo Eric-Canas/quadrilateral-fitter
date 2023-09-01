@@ -47,7 +47,7 @@ Initialize the **QuadrilateralFitter** instance..
 ### QuadrilateralFitter.fit(simplify_polygons_larger_than = 10):
 - `simplify_polygons_larger_than`: **int | None**. List of the polygon coordinates. It must be a list of coordinates, in the format `XY`, shape (N, 2). If a number is specified, the method will make a preliminar _Douglas-Peucker_ simplification of the internally used _Convex Hull_ if it has more than `simplify_polygons_larger_than vertices`. This will speed up the process, but may lead to a sub-optimal quadrilateral approximation. Default: 10.
 
-- Returns: **tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]]**: A `tuple` containing the four `XY` coordinates of the fitted cuadrilateral. This quadrilateral will minimize the **IoU** (Intersection Over Union) with the input _polygon_, while containing all its points inside. If your use case can allow loosing points from the input polygon, you can read the `QuadrilateralFitter.tight_polygon` property to obtain a tighter quadrilateral.
+**Returns**: **tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]]**: A `tuple` containing the four `XY` coordinates of the fitted cuadrilateral. This quadrilateral will minimize the **IoU** (Intersection Over Union) with the input _polygon_, while containing all its points inside. If your use case can allow loosing points from the input polygon, you can read the `QuadrilateralFitter.tight_polygon` property to obtain a tighter quadrilateral.
 
 
 ## Real Case Example
