@@ -7,16 +7,30 @@ from itertools import combinations
 from quadrilateral_fitter import _Line  # Assuming you'll also rename the module
 
 class QuadrilateralFitter:
-    def __init__(self, polygon: 'np.ndarray' | tuple | list):
+    def __init__(self, polygon: 'np.ndarray' | tuple | list | Polygon):
         """
         Constructor for initializing the QuadrilateralFitter object.
 
         :param polygon: np.ndarray. A NumPy array of shape (N, 2) representing the input polygon,
                               where N is the number of vertices.
         """
-        assert polygon.shape[1] == 2, "Input polygon should have a shape of (N, 2)"
-        self._polygon = polygon
-        self.convex_hull_polygon = Polygon(polygon).convex_hull
+        
+        if isinstance(polygon, Polygon):
+            self._polygon = polygon
+        else:
+            if type(polygon).__name__ == 'ndarray':
+                assert polygon.shape[1] == len(
+                    polygon.shape) == 2, f"Input polygon must have shape (N, 2). Got {polygon.shape}"
+                self._polygon = Polygon(polygon)
+            elif isinstance(polygon, (list, tuple)):
+                # Checking if the list or tuple has sub-lists/tuples of length 2 (i.e., coordinates)
+                assert all(isinstance(coord, (list, tuple)) and len(coord) == 2 for coord in
+                           polygon), "Expected sub-lists or sub-tuples of length 2 for coordinates"
+                self._polygon = Polygon(polygon)
+            else:
+                raise TypeError(f"Unexpected input type: {type(polygon)}. Accepted are np.ndarray, tuple, "
+                                f"list and shapely.Polygon")
+        self.convex_hull_polygon = self._polygon.convex_hull
 
         self._initial_guess = None
         self.fitted_quadrilateral = None
@@ -39,6 +53,11 @@ class QuadrilateralFitter:
         3. Refines this initial quadrilateral to ensure it fully circumscribes the convex hull.
 
         Note: The input polygon should be of shape (N, 2), where N is the number of vertices.
+
+        :param simplify_polygons_larger_than: int | None. If a number is specified, the method will make a
+                        preliminar Douglas-Peucker simplification of the Convex Hull if it has more than
+                        simplify_polygons_larger_than vertices. This will speed up the process, but may
+                        lead to a sub-optimal quadrilateral approximation.
 
         :return: A tuple containing four tuples, each of which has two float elements representing the (x, y)
                 coordinates of the quadrilateral's vertices. The vertices are order clockwise.
@@ -242,7 +261,7 @@ class QuadrilateralFitter:
             raise ImportError("This function requires matplotlib to be installed. Please install it first.")
 
         # Plot the original polygon as a set of alpha 0.4 points
-        x, y = zip(*list(self._polygon))
+        x, y = self._polygon.exterior.xy
         plt.scatter(x, y, alpha=0.2, label='Input Polygon')
 
         # Plot the convex hull as a filled polygon

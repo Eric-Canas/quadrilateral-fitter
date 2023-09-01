@@ -16,21 +16,14 @@ def yugioh_test():
     noisy_corners[:, 0] = np.clip(noisy_corners[:, 0], a_min=0., a_max=image.shape[1])
     noisy_corners[:, 1] = np.clip(noisy_corners[:, 1], a_min=0., a_max=image.shape[0])
 
-    print(noisy_corners.tolist())
-
     fitter = QuadrilateralFitter(polygon=noisy_corners)
     fitted_quadrilateral = fitter.fit(simplify_polygons_larger_than=30)
     tight_quadrilateral = fitter.tight_quadrilateral
-
-    print(fitted_quadrilateral)
-    print(tight_quadrilateral)
 
 
 
 if __name__ == '__main__':
 
-
-    yugioh_test()
     # 1. Deformed trapezoid
     num_points = 20
     left_side = np.linspace([0.2, 0.2], [0.2, 0.8], num_points) + np.random.normal(scale=0.01, size=(num_points, 2))
