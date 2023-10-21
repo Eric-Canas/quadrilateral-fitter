@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from shapely.geometry import Polygon, mapping
-from itertools import combinations
+from scipy.optimize import minimize
+import numpy as np
 
+from itertools import combinations
+from random import sample
 
 from quadrilateral_fitter import _Line  # Assuming you'll also rename the module
 
 class QuadrilateralFitter:
-    def __init__(self, polygon: 'np.ndarray' | tuple | list | Polygon):
+    def __init__(self, polygon: np.ndarray | tuple | list | Polygon):
         """
         Constructor for initializing the QuadrilateralFitter object.
 
@@ -16,32 +19,34 @@ class QuadrilateralFitter:
         """
         
         if isinstance(polygon, Polygon):
-            self._polygon = polygon
+            _polygon = polygon
+            self._polygon_coords = np.array(polygon.exterior.coords, dtype=np.float32)
         else:
-            if type(polygon).__name__ == 'ndarray':
+            if type(polygon) == np.ndarray:
                 assert polygon.shape[1] == len(
                     polygon.shape) == 2, f"Input polygon must have shape (N, 2). Got {polygon.shape}"
-                self._polygon = Polygon(polygon)
+                _polygon = Polygon(polygon)
+                self._polygon_coords = polygon
+
             elif isinstance(polygon, (list, tuple)):
                 # Checking if the list or tuple has sub-lists/tuples of length 2 (i.e., coordinates)
                 assert all(isinstance(coord, (list, tuple)) and len(coord) == 2 for coord in
                            polygon), "Expected sub-lists or sub-tuples of length 2 for coordinates"
-                self._polygon = Polygon(polygon)
+                _polygon = Polygon(polygon)
+                self._polygon_coords = np.array(polygon, dtype=np.float32)
             else:
                 raise TypeError(f"Unexpected input type: {type(polygon)}. Accepted are np.ndarray, tuple, "
                                 f"list and shapely.Polygon")
-        self.convex_hull_polygon = self._polygon.convex_hull
+
+        self.convex_hull_polygon = _polygon.convex_hull
 
         self._initial_guess = None
+
+        self._line_equations = None
         self.fitted_quadrilateral = None
 
-    @property
-    def tight_quadrilateral(self) -> \
-            tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]]:
-        if self._initial_guess is None:
-            self._initial_guess = self.__find_initial_quadrilateral()
-        # Cast it from Shapely polygon to a tuple of coords
-        return tuple(self._initial_guess.exterior.coords)[:-1]
+        self._expanded_line_equations = None
+        self.expanded_fitted_quadrilateral = None
 
     def fit(self, simplify_polygons_larger_than: int|None = 10, start_simplification_epsilon: float = 0.1,
             max_simplification_epsilon: float = 0.5, simplification_epsilon_increment: float = 0.02) -> \
@@ -73,19 +78,20 @@ class QuadrilateralFitter:
 
         :raises AssertionError: If the input polygon does not have a shape of (N, 2).
         """
-        if self._initial_guess is None:
-            self._initial_guess = self.__find_initial_quadrilateral(max_sides_to_simplify=simplify_polygons_larger_than,
-                                                                start_simplification_epsilon=start_simplification_epsilon,
-                                                                max_simplification_epsilon=max_simplification_epsilon,
-                                                                simplification_epsilon_increment=simplification_epsilon_increment)
-        self.fitted_quadrilateral = self.__expand_quadrilateral(quadrilateral=self._initial_guess)
+        self._initial_guess = self.__find_initial_quadrilateral(max_sides_to_simplify=simplify_polygons_larger_than,
+                                                            start_simplification_epsilon=start_simplification_epsilon,
+                                                            max_simplification_epsilon=max_simplification_epsilon,
+                                                            simplification_epsilon_increment=simplification_epsilon_increment)
+        self.fitted_quadrilateral = self.__finetune_guess()
+        self.expanded_quadrilateral = self.__expand_quadrilateral()
         return self.fitted_quadrilateral
 
 
     def __find_initial_quadrilateral(self, max_sides_to_simplify: int | None = 10,
                                      start_simplification_epsilon: float = 0.1,
                                      max_simplification_epsilon: float = 0.5,
-                                     simplification_epsilon_increment: float = 0.02) -> Polygon:
+                                     simplification_epsilon_increment: float = 0.02,
+                                     max_combinations: int = 300) -> Polygon:
         """
         Internal method to find the initial approximating quadrilateral based on the vertices of the Convex Hull.
         To find the initial quadrilateral, we iterate through all 4-vertex combinations of the Convex Hull vertices
@@ -102,6 +108,9 @@ class QuadrilateralFitter:
         :param simplification_epsilon_increment: float. The increment in the simplification epsilon to use if
                         max_sides_to_simplify is not None (for Douglas-Peucker simplification).
 
+        :param max_combinations: int. The maximum number of combinations to try. If the number of combinations
+                        is larger than this number, the method will only run random max_combinations combinations.
+
         :return: Polygon. A Shapely Polygon object representing the initial quadrilateral approximation.
         """
         best_iou, best_quadrilateral = 0., None  # Variable to store the vertices of the best quadrilateral
@@ -114,8 +123,14 @@ class QuadrilateralFitter:
                                                      max_epsilon=max_simplification_epsilon,
                                                      epsilon_increment=simplification_epsilon_increment)
 
-        # Iterate through all 4-vertex combinations to form potential quadrilaterals
-        for vertices_combination in combinations(mapping(simplified_polygon)['coordinates'][0], 4):
+        all_combinations = tuple(combinations(mapping(simplified_polygon)['coordinates'][0], 4))
+
+        # Limit the number of combinations to max_combinations if it's too large, to speed up the process
+        if len(all_combinations) > max_combinations:
+            all_combinations = sample(all_combinations, max_combinations)
+
+        # Iterate through 4-vertex combinations to form potential quadrilaterals
+        for vertices_combination in all_combinations:
             current_quadrilateral = Polygon(vertices_combination)
             assert current_quadrilateral.is_valid, f"Quadrilaterals generated from an ordered Convex Hull should be " \
                                                        f"always valid."
@@ -134,28 +149,75 @@ class QuadrilateralFitter:
 
         return best_quadrilateral
 
+    def __finetune_guess(self) -> Polygon:
+        """
+        Internal method to finetune the initial quadrilateral approximation to adjust to the input polygon.
+        The method works by deciding which point of the initial polygon belongs to which side of the input polygon
+        and fitting a line to each side of the input polygon. The intersection points between the lines will
+        be the vertices of the new quadrilateral.
 
-    def __expand_quadrilateral(self, quadrilateral: Polygon) -> Polygon:
+        :return: Polygon. A Shapely Polygon object representing the finetuned quadrilateral.
+        """
+
+        initial_line_equations = self.__polygon_vertices_to_line_equations(polygon=self._initial_guess)
+        # Calculate the distance between each vertex of the input polygon and each line of the quadrilateral
+        distances = np.array(
+            [line.distances_from_points(points=self._polygon_coords) for line in initial_line_equations],
+            dtype=np.float32)
+        # For each point, get the index of the closest line
+        points_line_idx = np.argmin(distances, axis=0)
+
+        self._line_equations = tuple(
+            self.__linear_regression(self._polygon_coords[points_line_idx == i], initial_guess=initial_guess)
+                for i, initial_guess in enumerate(initial_line_equations)
+        )
+
+        new_quadrilateral_vertices = self.__find_polygon_vertices_from_lines(line_equations=self._line_equations)
+        return new_quadrilateral_vertices
+
+    def __linear_regression(self, points: np.ndarray, initial_guess: _Line = None) -> _Line:
+        """
+        Internal method that fits a line from a set of points using linear regression.
+        :param points: np.ndarray. A numpy array of shape (N, 2) representing the points to fit the line to. Format X,Y
+        :param initial_guess: _Line. An initial guess for the line equation. If None, the method will use the
+                        linear regression method to find the best possible line.
+        :return: _Line. A _Line object representing the fitted line.
+        """
+
+        def perpendicular_distance(params, points: np.ndarray):
+            a, b, c = params
+            x, y = points[:, 0], points[:, 1]
+            return np.sum(np.abs(a * x + b * y + c)) / np.sqrt(a * a + b * b)
+
+        if initial_guess is None:
+            initial_guess = (1., -1., 0.)
+        else:
+            initial_guess = (initial_guess.A, initial_guess.B, initial_guess.C)
+
+        result = minimize(perpendicular_distance, initial_guess, args=(points,), method='Nelder-Mead')
+        A, B, C = result.x
+
+        return _Line(A=A, B=B, C=C)
+
+    def __expand_quadrilateral(self) -> Polygon:
         """
         Internal method that expands the initial quadrilateral approximation to make sure it contains all the vertices
         of the input polygon Convex Hull.
         Method:
-            1. Calculate the line equation for each side of the quadrilateral
-            2. Move each line in their orthogonal direction (outwards) until it contains (or intersects)
+            1. Move each line in their orthogonal direction (outwards) until it contains (or intersects)
                all the points of the Convex Hull in its inward direction
-            3. Find the intersection points between the lines to calculate the vertices of the
+            2. Find the intersection points between the lines to calculate the vertices of the
                new expanded quadrilateral
 
         :param quadrilateral: Polygon. A Shapely Polygon object representing the initial quadrilateral approximation.
 
         :return: Polygon. A Shapely Polygon object representing the expanded quadrilateral.
         """
-        # 1. Calculate the line equation for each side of the quadrilateral
-        line_equations = self.__polygon_vertices_to_line_equations(polygon=quadrilateral)
-        # 2. Move each line in their orthogonal direction (outwards) until it contains (or intersects)
+        # 1. Move each line in their orthogonal direction (outwards) until it contains (or intersects)
         #    all the points of the Convex Hull in its inward direction
+        line_equations = tuple(line.copy() for line in self._line_equations)
         for line in line_equations:
-            self.__move_line_to_contain_all_points(line=line, polygon=quadrilateral)
+            self.__move_line_to_contain_all_points(line=line, polygon=self.convex_hull_polygon)
         # 3. Find the intersection points between the lines to calculate the vertices of the
         #    new expanded quadrilateral
         new_quadrilateral_vertices = self.__find_polygon_vertices_from_lines(line_equations=line_equations)
@@ -169,8 +231,29 @@ class QuadrilateralFitter:
         :return: tuple[tuple[float, float], ...]. A tuple of tuples representing the vertices of the polygon.
         """
         # Find the intersection between each line and its next one
-        return tuple(line1.get_intersection(other_line=line_equations[(i + 1) % len(line_equations)])
+        points = tuple(line1.get_intersection(other_line=line_equations[(i + 1) % len(line_equations)])
                      for i, line1 in enumerate(line_equations))
+        # Order points clockwise
+        points = self.__order_points_clockwise(pts=points)
+        return points
+
+    def __order_points_clockwise(self, pts: np.ndarray | tuple[tuple[float, float], ...]) -> tuple[tuple[float, float], ...]:
+
+        as_np = isinstance(pts, np.ndarray)
+        if not as_np:
+            pts = np.array(pts, dtype=np.float32)
+        # Calculate the center of the points
+        center = np.mean(pts, axis=0)
+
+        # Compute the angles from the center
+        angles = np.arctan2(pts[:, 1] - center[1], pts[:, 0] - center[0])
+
+        # Sort the points by the angles in ascending order
+        sorted_pts = pts[np.argsort(angles)]
+
+        if not as_np:
+            sorted_pts = tuple(tuple(pt) for pt in sorted_pts)
+        return sorted_pts
 
     @staticmethod
     def __polygon_vertices_to_line_equations(polygon: Polygon) -> tuple[_Line]:
@@ -219,7 +302,7 @@ class QuadrilateralFitter:
 
     def __simplify_polygon(self, polygon: Polygon, max_sides: int|None,
                            initial_epsilon: float = 0.1, max_epsilon: float = 0.5,
-                           epsilon_increment: float = 0.02) -> Polygon:
+                           epsilon_increment: float = 0.02, iou_threshold = 0.8) -> Polygon:
         """
         Internal method to simplify a polygon using the Douglas-Peucker algorithm.
         :param polygon: Polygon. The polygon to simplify.
@@ -231,20 +314,37 @@ class QuadrilateralFitter:
 
         :return: Polygon. The simplified polygon.
         """
-        if max_sides is None:
+        if max_sides is None or len(polygon.exterior.coords) - 1 <= max_sides:
             return polygon  # No simplification needed
 
         assert max_epsilon > 0., f"max_epsilon should be a float greater than 0. Got {max_epsilon}."
         assert initial_epsilon > 0., f"initial_epsilon should be a float greater than 0. Got {initial_epsilon}."
         assert epsilon_increment > 0., f"epsilon_increment should be a float greater than 0. Got {epsilon_increment}."
 
-        epsilon = initial_epsilon  # Initial tolerance value and incremental step for tolerance
         simplified_polygon = polygon
+        original_polygon_area = polygon.area
 
-        # -1 because the polygon is closed (last point is the same as the first)
-        while (len(simplified_polygon.exterior.coords) - 1 > max_sides) and (epsilon <= max_epsilon):
-            simplified_polygon = polygon.simplify(epsilon, preserve_topology=True)
-            epsilon += epsilon_increment
+        epsilon = initial_epsilon
+        while epsilon <= max_epsilon:
+            # Simplify the polygon
+            simplified_polygon_unconfirmed = simplified_polygon.simplify(epsilon, preserve_topology=True)
+            n_sides = len(simplified_polygon_unconfirmed.exterior.coords) - 1
+            # If the polygon has less than 4 sides, it becomes invalid, get the previous one
+            if n_sides < 4:
+                break
+            # If the polygon has less than max_sides, we have it. Return it or the previous one depending on the IoU
+            elif len(simplified_polygon_unconfirmed.exterior.coords) - 1 <= max_sides:
+                iou = self.__iou(polygon1=simplified_polygon_unconfirmed, polygon2=self.convex_hull_polygon,
+                                 precomputed_polygon_1_area=original_polygon_area)
+                # If the IoU is beyond the threshold, we accept the polygon. Otherwise, return the previous one
+                if iou > iou_threshold:
+                    # We accept the polygon
+                    simplified_polygon = simplified_polygon_unconfirmed
+                return simplified_polygon
+            else:
+                # If the polygon has more than max_sides, that's our best guess so far, but keep trying
+                simplified_polygon = simplified_polygon_unconfirmed
+                epsilon += epsilon_increment
 
         return simplified_polygon
 
@@ -285,8 +385,7 @@ class QuadrilateralFitter:
             raise ImportError("This function requires matplotlib to be installed. Please install it first.")
 
         # Plot the original polygon as a set of alpha 0.4 points
-        x, y = self._polygon.exterior.xy
-        plt.plot(x, y, alpha=0.3,  linestyle='-', marker='o', label='Input Polygon')
+        plt.plot(self._polygon_coords[:, 0], self._polygon_coords[:, 1], alpha=0.3,  linestyle='-', marker='o', label='Input Polygon')
 
         # Plot the convex hull as a filled polygon
         x, y = self.convex_hull_polygon.exterior.xy

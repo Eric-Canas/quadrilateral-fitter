@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='quadrilateral-fitter',
-    version='1.2',
+    version='1.8',
     author='Eric-Canas',
     author_email='eric@ericcanas.com',
     url='https://github.com/Eric-Canas/quadrilateral-fitter',
@@ -16,7 +16,9 @@ setup(
     packages=find_packages(),
     python_requires='>=3.6',
     install_requires=[
-        'shapely'
+        'shapely',
+        'numpy',
+        'scipy',
     ],
 
     classifiers=[
