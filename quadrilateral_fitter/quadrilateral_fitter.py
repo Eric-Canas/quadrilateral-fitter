@@ -26,6 +26,7 @@ class QuadrilateralFitter:
                 assert polygon.shape[1] == len(
                     polygon.shape) == 2, f"Input polygon must have shape (N, 2). Got {polygon.shape}"
                 _polygon = Polygon(polygon)
+                self._polygon_coords = polygon
             elif isinstance(polygon, (list, tuple)):
                 # Checking if the list or tuple has sub-lists/tuples of length 2 (i.e., coordinates)
                 assert all(isinstance(coord, (list, tuple)) and len(coord) == 2 for coord in
