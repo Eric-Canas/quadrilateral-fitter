@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from shapely.geometry import Polygon, mapping
+from shapely.geometry import Polygon, mapping, LineString
 from scipy.optimize import minimize
 import numpy as np
-
+from warnings import warn
 from itertools import combinations
 from random import sample
 
@@ -26,8 +26,6 @@ class QuadrilateralFitter:
                 assert polygon.shape[1] == len(
                     polygon.shape) == 2, f"Input polygon must have shape (N, 2). Got {polygon.shape}"
                 _polygon = Polygon(polygon)
-                self._polygon_coords = polygon
-
             elif isinstance(polygon, (list, tuple)):
                 # Checking if the list or tuple has sub-lists/tuples of length 2 (i.e., coordinates)
                 assert all(isinstance(coord, (list, tuple)) and len(coord) == 2 for coord in
@@ -37,6 +35,30 @@ class QuadrilateralFitter:
             else:
                 raise TypeError(f"Unexpected input type: {type(polygon)}. Accepted are np.ndarray, tuple, "
                                 f"list and shapely.Polygon")
+
+            if isinstance(_polygon, LineString):
+                warn("Polygon coordinates casted to a LineString. Quadrilateral Fitting results may be inaccurate.")
+                # Extract the line coordinates
+                line_coords = np.array(_polygon.coords, dtype=np.float32)
+
+                # Well define a rectangle around it with a margin
+                min_x, min_y = np.min(line_coords, axis=0)
+                max_x, max_y = np.max(line_coords, axis=0)
+                margin = 10
+
+                # Define the new coordinates for the tight rectangle with margin
+                false_coords = [
+                    [min_x - margin, min_y - margin],
+                    [min_x - margin, max_y + margin],
+                    [max_x + margin, max_y + margin],
+                    [max_x + margin, min_y - margin],
+                    [min_x - margin, min_y - margin]
+                ]
+
+                _polygon = Polygon(false_coords)
+                assert isinstance(_polygon, Polygon), "Expected a Polygon object from the input coordinates"
+
+                self._polygon_coords = np.array(_polygon.exterior.coords, dtype=np.float32)
 
         self.convex_hull_polygon = _polygon.convex_hull
 
@@ -300,29 +322,40 @@ class QuadrilateralFitter:
 
     # -------------------------------- HELPER METHODS -------------------------------- #
 
-    def __simplify_polygon(self, polygon: Polygon, max_sides: int|None,
-                           initial_epsilon: float = 0.1, max_epsilon: float = 0.5,
-                           epsilon_increment: float = 0.02, iou_threshold = 0.8) -> Polygon:
+    def __simplify_polygon(self, polygon, max_sides=None, initial_epsilon=0.1,
+                           max_epsilon=0.5, epsilon_increment=0.02, iou_threshold=0.8):
         """
         Internal method to simplify a polygon using the Douglas-Peucker algorithm.
-        :param polygon: Polygon. The polygon to simplify.
+        :param polygon: Polygon or GeometryCollection. The polygon or collection of geometries to simplify.
         :param max_sides: int|None. The maximum number of sides the polygon can have after simplification.
-                            If None, no simplification will be performed.
+        If None, no simplification will be performed.
         :param max_epsilon: float. The maximum tolerance value for the Douglas-Peucker algorithm.
         :param initial_epsilon: float. The initial tolerance value for the Douglas-Peucker algorithm.
         :param epsilon_increment: float. The incremental step for the tolerance value.
 
-        :return: Polygon. The simplified polygon.
-        """
-        if max_sides is None or len(polygon.exterior.coords) - 1 <= max_sides:
-            return polygon  # No simplification needed
+         :return: Polygon. The simplified polygon.
+         """
+
+        if isinstance(polygon, Polygon):
+            polygon_to_simplify = polygon
+        elif isinstance(polygon, self.GeometryCollection):
+            # Find the first Polygon in the collection (assuming there's only one)
+            polygon_to_simplify = next((geom for geom in polygon.geoms if isinstance(geom, Polygon)), None)
+            if polygon_to_simplify is None:
+                raise ValueError("No Polygon found in GeometryCollection.")
+        else:
+            raise TypeError("Expected Polygon or GeometryCollection, got {type(polygon)}.")
+
+        # Now simplify the polygon_to_simplify
+        if polygon_to_simplify is None or max_sides is None or len(polygon_to_simplify.exterior.coords) - 1 <= max_sides:
+            return polygon_to_simplify  # No simplification needed
 
         assert max_epsilon > 0., f"max_epsilon should be a float greater than 0. Got {max_epsilon}."
         assert initial_epsilon > 0., f"initial_epsilon should be a float greater than 0. Got {initial_epsilon}."
         assert epsilon_increment > 0., f"epsilon_increment should be a float greater than 0. Got {epsilon_increment}."
 
-        simplified_polygon = polygon
-        original_polygon_area = polygon.area
+        simplified_polygon = polygon_to_simplify
+        original_polygon_area = polygon_to_simplify.area
 
         epsilon = initial_epsilon
         while epsilon <= max_epsilon:
