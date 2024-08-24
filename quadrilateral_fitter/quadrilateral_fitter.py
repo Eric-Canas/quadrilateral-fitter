@@ -322,8 +322,9 @@ class QuadrilateralFitter:
 
     # -------------------------------- HELPER METHODS -------------------------------- #
 
-    def __simplify_polygon(self, polygon, max_sides=None, initial_epsilon=0.1,
-                           max_epsilon=0.5, epsilon_increment=0.02, iou_threshold=0.8):
+    def __simplify_polygon(self, polygon: Polygon, max_sides: int | None,
+                           initial_epsilon: float = 0.1, max_epsilon: float = 0.5,
+                           epsilon_increment: float = 0.02, iou_threshold: float = 0.8):
         """
         Internal method to simplify a polygon using the Douglas-Peucker algorithm.
         :param polygon: Polygon or GeometryCollection. The polygon or collection of geometries to simplify.
