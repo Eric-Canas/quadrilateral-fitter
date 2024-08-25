@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from shapely import GeometryCollection
 from shapely.geometry import Polygon, mapping, LineString
 from scipy.optimize import minimize
 import numpy as np
@@ -323,7 +324,7 @@ class QuadrilateralFitter:
 
     # -------------------------------- HELPER METHODS -------------------------------- #
 
-    def __simplify_polygon(self, polygon: Polygon, max_sides: int | None,
+    def __simplify_polygon(self, polygon: Polygon|GeometryCollection, max_sides: int | None,
                            initial_epsilon: float = 0.1, max_epsilon: float = 0.5,
                            epsilon_increment: float = 0.02, iou_threshold: float = 0.8):
         """
@@ -340,7 +341,7 @@ class QuadrilateralFitter:
 
         if isinstance(polygon, Polygon):
             polygon_to_simplify = polygon
-        elif isinstance(polygon, self.GeometryCollection):
+        elif isinstance(polygon, GeometryCollection):
             # Find the first Polygon in the collection (assuming there's only one)
             polygon_to_simplify = next((geom for geom in polygon.geoms if isinstance(geom, Polygon)), None)
             if polygon_to_simplify is None:
